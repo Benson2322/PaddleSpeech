@@ -505,13 +505,13 @@ async def vpr_data(vprId: int):
 
 
 @app.get('/tts/chinese/course/list')
-async def tts_course_list():
+async def tts_course_list(subjectId: int):
     # Get all records in MySQL
     try:
         with get_connection() as connection:
             with connection.cursor() as cursor:
-                sql = 'select id,name from t_g4_course'
-                cursor.execute(sql)
+                sql = 'select id,name from t_g4_course where subjectId=%s'
+                cursor.execute(sql, (subjectId,))
                 result = cursor.fetchall()
 
         # course_list = [{'id': 1, 'name': '第一课'},
@@ -527,15 +527,28 @@ async def tts_course_text(textId: int):
     try:
         with get_connection() as connection:
             with connection.cursor() as cursor:
-                sql = 'select text from t_g4_course where id=%s'
+                sql = 'select * from t_g4_course where id=%s'
                 cursor.execute(sql, (textId,))
                 result = cursor.fetchone()
                 print(result)
+                out = result['text']
+                if result['name'] == '随机':
+                    sql = 'select text from t_g4_course where text != "" and subjectId=%s and active=1'
+                    cursor.execute(sql, (result['subjectId'],))
+                    result = cursor.fetchall()
+                    allText = ''
+                    for text in result:
+                        allText += text['text'] + ' '
+                    texts = allText.split(' ')
+                    randomText = random.sample(allText.split(' '), 20)
+                    out = ' '.join(randomText)
+
+                print(out)
         # if textId == 1:
         #     text = '黑乎乎,筋疲力竭,殚精竭虑'
         # elif textId == 2:
         #     text = '均匀,为虎作伥,八仙过海'
-        return SuccessRequest(result=result['text'])
+        return SuccessRequest(result=out)
     except Exception as e:
         return {'status': False, 'msg': e}, 400
 
