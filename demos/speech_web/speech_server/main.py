@@ -31,6 +31,8 @@ from paddlespeech.cli.tts.infer import TTSExecutor
 from paddlespeech.server.engine.asr.online.python.asr_engine import PaddleASRConnectionHanddler
 from paddlespeech.server.utils.audio_process import float2pcm
 
+from src.mysql_util import *
+
 # 解析配置
 parser = argparse.ArgumentParser(prog='PaddleSpeechDemo', add_help=True)
 
@@ -57,6 +59,7 @@ UPLOAD_PATH = "source/vpr"
 WAV_PATH = "source/wav"
 
 base_sources = [UPLOAD_PATH, WAV_PATH]
+
 for path in base_sources:
     os.makedirs(path, exist_ok=True)
 
@@ -93,6 +96,7 @@ class Audios:
 
 
 audios = Audios()
+
 
 ######################################################################
 ########################### ASR 服务 #################################
@@ -215,8 +219,9 @@ async def websocket_endpoint(websocket: WebSocket):
         # await manager.broadcast(f"用户-{user}-离开")
         # print(f"用户-{user}-离开")
 
-
     # 流式识别的 ASR
+
+
 @app.websocket('/ws/asr/onlineStream')
 async def websocket_endpoint_online(websocket: WebSocket):
     """PaddleSpeech Online ASR Server api
@@ -225,20 +230,20 @@ async def websocket_endpoint_online(websocket: WebSocket):
         websocket (WebSocket): the websocket instance
     """
 
-    #1. the interface wait to accept the websocket protocal header
+    # 1. the interface wait to accept the websocket protocal header
     #   and only we receive the header, it establish the connection with specific thread
     await websocket.accept()
 
-    #2. if we accept the websocket headers, we will get the online asr engine instance
+    # 2. if we accept the websocket headers, we will get the online asr engine instance
     engine = chatbot.asr.engine
 
-    #3. each websocket connection, we will create an PaddleASRConnectionHanddler to process such audio
+    # 3. each websocket connection, we will create an PaddleASRConnectionHanddler to process such audio
     #   and each connection has its own connection instance to process the request
     #   and only if client send the start signal, we create the PaddleASRConnectionHanddler instance
     connection_handler = None
 
     try:
-        #4. we do a loop to process the audio package by package according the protocal
+        # 4. we do a loop to process the audio package by package according the protocal
         #   and only if the client send finished signal, we will break the loop
         while True:
             # careful here, changed the source code from starlette.websockets
@@ -247,7 +252,7 @@ async def websocket_endpoint_online(websocket: WebSocket):
             message = await websocket.receive()
             websocket._raise_on_disconnect(message)
 
-            #4.2 text for the action command and bytes for pcm data
+            # 4.2 text for the action command and bytes for pcm data
             if "text" in message:
                 # we first parse the specific command
                 message = json.loads(message["text"])
@@ -402,9 +407,9 @@ app.add_middleware(
 
 
 @app.post('/vpr/enroll')
-async def vpr_enroll(table_name: str=None,
-                     spk_id: str=Form(...),
-                     audio: UploadFile=File(...)):
+async def vpr_enroll(table_name: str = None,
+                     spk_id: str = Form(...),
+                     audio: UploadFile = File(...)):
     # Enroll the uploaded audio with spk-id into MySQL
     try:
         if not spk_id:
@@ -425,8 +430,8 @@ async def vpr_enroll(table_name: str=None,
 
 @app.post('/vpr/recog')
 async def vpr_recog(request: Request,
-                    table_name: str=None,
-                    audio: UploadFile=File(...)):
+                    table_name: str = None,
+                    audio: UploadFile = File(...)):
     # Voice print recognition online
     # try:
     # Save the upload data to server.
@@ -445,7 +450,7 @@ async def vpr_recog(request: Request,
 
 
 @app.post('/vpr/del')
-async def vpr_del(spk_id: dict=None):
+async def vpr_del(spk_id: dict = None):
     # Delete a record by spk_id in MySQL
     try:
         spk_id = spk_id['spk_id']
@@ -495,6 +500,42 @@ async def vpr_data(vprId: int):
             return {'status': False, 'msg': "vpr_id can not be None"}
         audio_path = vpr.do_get_wav(vprId)
         return FileResponse(audio_path)
+    except Exception as e:
+        return {'status': False, 'msg': e}, 400
+
+
+@app.get('/tts/chinese/course/list')
+async def tts_course_list():
+    # Get all records in MySQL
+    try:
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                sql = 'select id,name from t_g4_course'
+                cursor.execute(sql)
+                result = cursor.fetchall()
+
+        # course_list = [{'id': 1, 'name': '第一课'},
+        #                {'id': 2, 'name': '第二课'}]
+        return SuccessRequest(result=result)
+    except Exception as e:
+        return {'status': False, 'msg': e}, 400
+
+
+@app.get('/tts/chinese/course/text')
+async def tts_course_text(textId: int):
+    # Get all records in MySQL
+    try:
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                sql = 'select text from t_g4_course where id=%s'
+                cursor.execute(sql, (textId,))
+                result = cursor.fetchone()
+                print(result)
+        # if textId == 1:
+        #     text = '黑乎乎,筋疲力竭,殚精竭虑'
+        # elif textId == 2:
+        #     text = '均匀,为虎作伥,八仙过海'
+        return SuccessRequest(result=result['text'])
     except Exception as e:
         return {'status': False, 'msg': e}, 400
 

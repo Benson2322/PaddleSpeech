@@ -9,6 +9,7 @@ import IET from './SubMenu/IE/IET.vue'
 import VoiceCloneT from './SubMenu/VoiceClone/VoiceClone.vue'
 import ERNIE_SATT from './SubMenu/ERNIE_SAT/ERNIE_SAT.vue'
 import FineTuneT from './SubMenu/FineTune/FineTune.vue'
+import TTSTChinese from "./SubMenu/TTS_Chinese/TTSTChinese.vue";
 
 </script>
 
@@ -49,6 +50,9 @@ import FineTuneT from './SubMenu/FineTune/FineTune.vue'
             </el-tab-pane>
             <el-tab-pane label="ERNIE-SAT" key="8">
             <ERNIE_SATT></ERNIE_SATT>
+            </el-tab-pane>
+            <el-tab-pane label="Marvin" key="9">
+            <TTSTChinese></TTSTChinese>
             </el-tab-pane>
           </el-tabs>
         </div>
