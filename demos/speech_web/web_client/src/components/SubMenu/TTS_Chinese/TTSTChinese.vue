@@ -3,9 +3,14 @@
     <!-- {/* 中文文本 */} -->
     <div class="recognition_text">
       <div>
+        <label for="selectBox">科目：</label>
+        <select id="selectBox" v-model="subjectSelectedOption" @change="handleSelectionSubjectChange">
+          <option value="">请选择科目</option>
+          <option v-for="option in dropdownSubjectOptions" :value="option.id">{{ option.name }}</option>
+        </select>
         <label for="selectBox">课文：</label>
         <select id="selectBox" v-model="selectedOption" @change="handleSelectionChange">
-          <option value="">请选择一课</option>
+          <option value="">请选择</option>
           <option v-for="option in dropdownOptions" :value="option.id">{{ option.name }}</option>
         </select>
       </div>
@@ -29,44 +34,13 @@
       <div class="speech_recognition_title">
         语音合成
       </div>
-      <!-- 流式合成初始状态 -->
-      <div v-if="streamingOnInit" class="speech_recognition_streaming"
-           @click="getTtsChunkWavWS()"
+
+      <!-- //  {/* 端到端合成 */} -->
+      <div v-if="endToEndOnInit" class="speech_recognition_end_to_end"
+           @click="EndToEndSynthesis()"
       >
-        流式合成
+        端到端合成
       </div>
-      <!-- 流式合成播放状态 -->
-      <div v-else>
-        <div v-if="streamingStopStatus" class="streaming_ing_box">
-          <div class="streaming_ing">
-            <div class="streaming_ing_img"></div>
-            <!-- <Spin indicator={antIcon} /> -->
-            <div class="streaming_ing_text">合成中</div>
-          </div>
-          <div class="streaming_time">响应时间：0ms</div>
-        </div>
-        <div v-else>
-          <div v-if="streamingContinueStatus" class="streaming_suspended_box">
-            <div class="streaming_suspended"
-                 @click="streamingStop()"
-            >
-              <div class="streaming_suspended_img"></div>
-              <div class="streaming_suspended_text">暂停播放</div>
-
-            </div>
-            <div class="suspended_time">
-              响应时间：{{ Number(streamingAcceptStamp) - Number(streamingSendStamp) }}ms
-            </div>
-          </div>
-          <div v-else class="streaming_continue"
-               @click="streamingResume()"
-          >
-            <div class="streaming_continue_img"></div>
-            <div class="streaming_continue_text">继续播放</div>
-          </div>
-        </div>
-      </div>
-
       <div v-else>
         <div v-if="endToEndStopStatus" class="end_to_end_ing_box">
           <div class="end_to_end_ing">
@@ -160,19 +134,28 @@ export default {
       streamingSendStamp: '0',
       endToEndSendStamp: '0',
 
+      dropdownSubjectOptions: [
+        {
+          id: 1,
+          name: '语文'
+        },
+        {
+          id: 2,
+          name: '小学英语'
+        },
+        {
+          id: 3,
+          name: '新概念'
+        }
+      ],
+      subjectSelectedOption: '',  // 存储用户选择的选项
       dropdownOptions: [], // 用于存储下拉列表选项的数组
       selectedOption: '',  // 存储用户选择的选项
 
     }
   },
   async created() {
-    const result = await getCourseList();
-    console.log("course list:", result)
-    if (result.data.code === 0) {
-      this.dropdownOptions = result.data.result
 
-      this.textarea = this.dropdownOptions.text
-    }
   },
   mounted() {
     this.getRandomChineseWord()
@@ -335,22 +318,27 @@ export default {
       this.endToEndSendStamp = Date.now()
       this.endToEndOnInit = false
       this.endToEndStopStatus = true
+      const textArray = this.textarea.split(' ');
+      for (const text of textArray) {
+        for (let i = 0; i < 2; i++) {
+          let ttsResult = await this.$http.post("/api/tts/offline", {text: text});
+          if (ttsResult.status == 200) {
+            this.endToEndAcceptStamp = Date.now()
+            this.endToEndStopStatus = false
+            this.endToEndContinueStatus = true
+            // base转换二进制数
+            console.log('res', ttsResult)
+            let typedArray = this.base64ToUint8Array(ttsResult.data.result)
+            // 播放音频
+            this._schedulePlaybackWav({
+              wavData: typedArray.buffer,
+            })
 
-      let ttsResult = await this.$http.post("/api/tts/offline", {text: this.textarea});
-
-      if (ttsResult.status == 200) {
-        this.endToEndAcceptStamp = Date.now()
-        this.endToEndStopStatus = false
-        this.endToEndContinueStatus = true
-        // base转换二进制数
-        console.log('res', ttsResult)
-        let typedArray = this.base64ToUint8Array(ttsResult.data.result)
-        // 播放音频
-        this._schedulePlaybackWav({
-          wavData: typedArray.buffer,
-        })
+            await sleep(5000)
+          }
+          ;
+        }
       }
-      ;
     },
 
     // 端到端播放暂停
@@ -372,6 +360,15 @@ export default {
       const result = await getCourseText(this.selectedOption)
       if (result.data.code === 0) {
         this.textarea = result.data.result
+      }
+    },
+    async handleSelectionSubjectChange() {
+      console.log('Selected subject option changed to:', this.subjectSelectedOption);
+      const result = await getCourseList(this.subjectSelectedOption);
+      console.log("course list:", result)
+      if (result.data.code === 0) {
+        this.dropdownOptions = result.data.result
+        this.textarea = this.dropdownOptions.text
       }
     },
 

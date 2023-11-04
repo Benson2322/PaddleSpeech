@@ -40,7 +40,7 @@ export const apiURL =   {
     VC_CloneFineTune: '/api/finetune/clone_finetune',
     VC_CloneFineTuneSyn: '/api/finetune/clone_finetune_syn',
 
-    TTS_Chinese_Course_List : '/api/tts/chinese/course/list',
+    TTS_Chinese_Course_List : '/api/tts/chinese/course/list?subjectId=',
     TTS_Chinese_Course_Text : '/api/tts/chinese/course/text?textId=',
 }
 
