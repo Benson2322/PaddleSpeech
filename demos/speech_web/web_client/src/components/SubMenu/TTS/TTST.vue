@@ -134,7 +134,9 @@ function _reset(){
     _audioSrcNodes = []
 }
 
-
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 export default {
     name: "TTSTS",
@@ -232,18 +234,25 @@ export default {
                 this.$message.error("websocket 链接失败，请检查 Websocket 后端服务是否正确开启")
                 return
             }
-            // 初始化 chunks
-            chunks = []
-            chunk_index = 0
-            reciveOver = false
-            _reset()
-            
-            this.streamingOnInit = false
-            this.streamingStopStatus = true
-            this.streamingContinueStatus = true
 
-            this.streamingSendStamp = Date.now()
-            this.ws.send(this.textarea)
+            const textArray = this.textarea.split(',');
+
+            // 初始化 chunks
+            for (const text of textArray) {
+              chunks = []
+              chunk_index = 0
+              reciveOver = false
+              _reset()
+
+              this.streamingOnInit = false
+              this.streamingStopStatus = true
+              this.streamingContinueStatus = true
+
+              this.streamingSendStamp = Date.now()
+              this.ws.send(text)
+
+              await sleep(3000)
+            }
         },
         // 流式播放器
         _schedulePlaybackWav({wavData}) {
