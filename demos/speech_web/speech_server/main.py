@@ -542,7 +542,16 @@ async def tts_course_text(textId: int):
                     texts = allText.split(' ')
                     randomText = random.sample(allText.split(' '), 20)
                     out = ' '.join(randomText)
-
+                    if result['subjectId'] == 1:
+                        sql = 'select text from t_g4_course where text != "" and name in "古诗, 日积月累"'
+                        cursor.execute(sql)
+                        result = cursor.fetchall()
+                        allText = ''
+                        for text in result:
+                            allText += text['text'] + ' '
+                        texts = allText.split(' ')
+                        randomText = random.sample(allText.split(' '), 2)
+                        out = out.join(randomText)
                 print(out)
         # if textId == 1:
         #     text = '黑乎乎,筋疲力竭,殚精竭虑'
