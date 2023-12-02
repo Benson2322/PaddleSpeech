@@ -320,6 +320,9 @@ export default {
       this.endToEndStopStatus = true
       const textArray = this.textarea.split(' ');
       for (const text of textArray) {
+        if (text == '') {
+          continue
+        }
         for (let i = 0; i < 2; i++) {
           let ttsResult = await this.$http.post("/api/tts/offline", {text: text});
           if (ttsResult.status == 200) {
