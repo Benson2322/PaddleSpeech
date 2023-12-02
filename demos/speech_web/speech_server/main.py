@@ -547,7 +547,7 @@ async def tts_course_text(textId: int):
                         # texts = allText.split(' ')
                         # randomText = random.sample(allText.split(' '), 2)
                         randomText = getRandomTexts(cursor, sql, (), 2)
-                        out = out + ' 古诗,日积月累' +' '.join(randomText)
+                        out = out + ' \n古诗,日积月累:' +' '.join(randomText)
                 print(out)
         # if textId == 1:
         #     text = '黑乎乎,筋疲力竭,殚精竭虑'
