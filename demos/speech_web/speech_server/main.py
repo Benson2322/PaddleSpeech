@@ -532,26 +532,22 @@ async def tts_course_text(textId: int):
                 result = cursor.fetchone()
                 print(result)
                 out = result['text']
+                subjectId = result['subjectId']
                 if result['name'] == '随机':
                     sql = 'select text from t_g4_course where text != "" and subjectId=%s and active=1'
-                    cursor.execute(sql, (result['subjectId'],))
-                    result = cursor.fetchall()
-                    allText = ''
-                    for text in result:
-                        allText += text['text'] + ' '
-                    texts = allText.split(' ')
-                    randomText = random.sample(allText.split(' '), 20)
+                    randomText = getRandomTexts(cursor, sql, (subjectId,), 20)
                     out = ' '.join(randomText)
-                    if result['subjectId'] == 1:
-                        sql = 'select text from t_g4_course where text != "" and name in "古诗, 日积月累"'
-                        cursor.execute(sql)
-                        result = cursor.fetchall()
-                        allText = ''
-                        for text in result:
-                            allText += text['text'] + ' '
-                        texts = allText.split(' ')
-                        randomText = random.sample(allText.split(' '), 2)
-                        out = out.join(randomText)
+                    if subjectId == 1:
+                        sql = 'select text from t_g4_course where text != "" and name in ("古诗", "日积月累")'
+                        # cursor.execute(sql)
+                        # result = cursor.fetchall()
+                        # allText = ''
+                        # for text in result:
+                        #     allText += text['text'] + ' '
+                        # texts = allText.split(' ')
+                        # randomText = random.sample(allText.split(' '), 2)
+                        randomText = getRandomTexts(cursor, sql, (), 2)
+                        out = out + ' '.join(randomText)
                 print(out)
         # if textId == 1:
         #     text = '黑乎乎,筋疲力竭,殚精竭虑'
@@ -560,6 +556,19 @@ async def tts_course_text(textId: int):
         return SuccessRequest(result=out)
     except Exception as e:
         return {'status': False, 'msg': e}, 400
+
+
+def getRandomTexts(cursor, sql, params, size):
+    cursor.execute(sql, params)
+    result = cursor.fetchall()
+    allText = ''
+    for text in result:
+        allText += text['text'] + ' '
+    allText = allText.split(' ')
+    if len(allText) == 1:
+        return []
+
+    return random.sample(allText, size)
 
 
 if __name__ == '__main__':
